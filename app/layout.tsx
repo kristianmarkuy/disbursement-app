@@ -1,14 +1,17 @@
 import './globals.css';
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter_Tight } from 'next/font/google';
 import { Toaster } from 'sonner';
 import { AuthProvider } from '@/lib/auth-provider';
 
-const inter = Inter({ subsets: ['latin'] });
+const interTight = Inter_Tight({
+  subsets: ['latin'],
+  variable: '--font-inter-tight',
+});
 
 export const metadata: Metadata = {
-  title: 'Cash Disbursement Register',
-  description: 'Multi-School Cash Disbursement Register System',
+  title: 'LedgerOne',
+  description: 'LedgerOne Cash Disbursement Register System',
 };
 
 export default function RootLayout({
@@ -18,7 +21,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={interTight.variable}>
         <AuthProvider>
           {children}
           <Toaster position="top-right" richColors closeButton />

@@ -4,35 +4,38 @@
 
 @layer base {
   :root {
-    --background: 210 29% 97%;
-    --foreground: 210 14% 11%;
+    --font-sans: var(--font-inter-tight), "Inter Tight", Arial, sans-serif;
+    --font-display: "Mabry Pro", var(--font-sans);
+    --background: 0 0% 97%;
+    --foreground: 236 47% 24%;
     --card: 0 0% 100%;
-    --card-foreground: 210 14% 11%;
+    --card-foreground: 236 47% 24%;
     --popover: 0 0% 100%;
-    --popover-foreground: 210 14% 11%;
-    --primary: 220 83% 53%;
+    --popover-foreground: 236 47% 24%;
+    --primary: 236 47% 24%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 214 41% 91%;
-    --secondary-foreground: 215 17% 35%;
-    --muted: 210 17% 96%;
-    --muted-foreground: 226 12% 30%;
-    --accent: 214 100% 97%;
-    --accent-foreground: 220 83% 43%;
+    --secondary: 210 8% 95%;
+    --secondary-foreground: 236 47% 24%;
+    --muted: 210 8% 95%;
+    --muted-foreground: 236 47% 32%;
+    --accent: 194 92% 86%;
+    --accent-foreground: 236 47% 24%;
     --destructive: 0 72% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 226 24% 80%;
-    --input: 214 32% 91%;
-    --ring: 220 83% 53%;
-    --chart-1: 220 83% 53%;
-    --chart-2: 217 91% 60%;
-    --chart-3: 214 95% 83%;
-    --chart-4: 226 24% 80%;
-    --chart-5: 220 9% 46%;
+    --border: 210 8% 95%;
+    --input: 210 8% 95%;
+    --ring: 236 47% 24%;
+    --chart-1: 236 47% 24%;
+    --chart-2: 194 92% 86%;
+    --chart-3: 210 8% 95%;
+    --chart-4: 0 0% 97%;
+    --chart-5: 0 0% 100%;
     --radius: 0.25rem;
+    --surface: 0 0% 97%;
     --sidebar: 0 0% 100%;
-    --sidebar-foreground: 210 14% 11%;
-    --sidebar-accent: 214 100% 94%;
-    --sidebar-accent-foreground: 220 83% 43%;
+    --sidebar-foreground: 236 47% 24%;
+    --sidebar-accent: 194 92% 86%;
+    --sidebar-accent-foreground: 236 47% 24%;
   }
 }
 
@@ -42,7 +45,17 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
     font-feature-settings: "cv02", "cv03", "cv04", "cv11", "tnum";
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-display);
   }
 }
 
@@ -77,11 +90,11 @@
   }
 
   .data-table tbody tr:nth-child(even) {
-    @apply bg-slate-50/70;
+    @apply bg-muted/70;
   }
 
   .data-table tbody tr:hover {
-    @apply bg-blue-50;
+    @apply bg-accent/60;
   }
 }
 

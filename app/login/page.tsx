@@ -64,7 +64,7 @@ export default function LoginPage() {
               <Landmark className="h-6 w-6 text-white" />
             </div>
           </div>
-          <CardTitle className="text-xl text-primary">EduFinance</CardTitle>
+          <CardTitle className="text-xl text-primary">LedgerOne</CardTitle>
           <CardDescription>
             {mode === 'signin'
               ? 'Admin Portal Cash Disbursement Register'

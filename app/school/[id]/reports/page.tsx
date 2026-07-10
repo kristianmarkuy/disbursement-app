@@ -519,7 +519,7 @@ export default function SchoolReportsPage() {
             <Card key={report.title}>
               <CardContent className="space-y-4 p-5">
                 <div className="flex items-start gap-3">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-blue-50 text-primary">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-accent text-primary">
                     <report.icon className="h-5 w-5" />
                   </div>
                   <div>
@@ -750,18 +750,18 @@ export default function SchoolReportsPage() {
             <div key={group.uacs_code + gi} style={{ marginBottom: 16 }}>
               <div
                 style={{
-                  background: '#f5f5f5',
+                  background: '#f1f2f3',
                   padding: '6px 12px',
                   fontWeight: 'bold',
                   fontSize: 12,
-                  borderBottom: '1px solid #ddd',
+                  borderBottom: '1px solid #f1f2f3',
                 }}
               >
                 {group.uacs_code} &mdash; {group.uacs_title} ({group.category})
               </div>
               <table style={{ width: '100%', fontSize: 11, borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid #ddd' }}>
+                  <tr style={{ borderBottom: '1px solid #f1f2f3' }}>
                     <th style={{ padding: '4px 8px', textAlign: 'left' }}>Date</th>
                     <th style={{ padding: '4px 8px', textAlign: 'left' }}>DV No.</th>
                     <th style={{ padding: '4px 8px', textAlign: 'left' }}>Check No.</th>
@@ -772,12 +772,12 @@ export default function SchoolReportsPage() {
                 </thead>
                 <tbody>
                   {group.transactions.map((t) => (
-                    <tr key={t.id} style={{ borderBottom: '1px solid #eee' }}>
+                    <tr key={t.id} style={{ borderBottom: '1px solid #f1f2f3' }}>
                       <td style={{ padding: '3px 8px' }}>{formatDate(t.date)}</td>
                       <td style={{ padding: '3px 8px' }}>{t.dv_number}</td>
                       <td style={{ padding: '3px 8px' }}>{t.check_number || '\u2014'}</td>
                       <td style={{ padding: '3px 8px' }}>{t.payee}</td>
-                      <td style={{ padding: '3px 8px', color: '#666' }}>
+                      <td style={{ padding: '3px 8px', color: '#21255b' }}>
                         {t.particulars || '\u2014'}
                       </td>
                       <td
@@ -793,7 +793,7 @@ export default function SchoolReportsPage() {
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr style={{ background: '#eee', fontWeight: 'bold' }}>
+                  <tr style={{ background: '#f1f2f3', fontWeight: 'bold' }}>
                     <td colSpan={5} style={{ padding: '4px 8px', textAlign: 'right' }}>
                       Subtotal &mdash; {group.uacs_title}
                     </td>
@@ -807,8 +807,8 @@ export default function SchoolReportsPage() {
           ))}
           <div
             style={{
-              borderTop: '2px solid #333',
-              background: '#1a3a5c',
+              borderTop: '2px solid #21255b',
+              background: '#21255b',
               color: '#fff',
               padding: '8px 12px',
               display: 'flex',

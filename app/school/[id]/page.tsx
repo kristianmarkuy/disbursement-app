@@ -258,7 +258,7 @@ export default function SchoolDashboard() {
                 <button
                   type="button"
                   onClick={() => goToYear(selectedYear - 1)}
-                  className="flex h-7 w-7 items-center justify-center rounded border bg-white text-slate-700 hover:bg-blue-50 hover:text-primary"
+                  className="flex h-7 w-7 items-center justify-center rounded border bg-white text-foreground hover:bg-accent hover:text-primary"
                   aria-label="Previous year"
                 >
                   <ChevronLeft className="h-4 w-4" />
@@ -270,7 +270,7 @@ export default function SchoolDashboard() {
                   type="button"
                   onClick={() => goToYear(selectedYear + 1)}
                   disabled={selectedYear >= currentYear}
-                  className="flex h-7 w-7 items-center justify-center rounded border bg-white text-slate-700 hover:bg-blue-50 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
+                  className="flex h-7 w-7 items-center justify-center rounded border bg-white text-foreground hover:bg-accent hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
                   aria-label="Next year"
                 >
                   <ChevronRight className="h-4 w-4" />
@@ -292,7 +292,7 @@ export default function SchoolDashboard() {
                       className={`flex w-full items-center justify-between rounded border py-2 px-3 text-left transition-colors ${
                         selectedQuarter === quarter
                           ? 'border-primary bg-primary text-white'
-                          : 'border-border bg-white hover:border-primary/40 hover:bg-blue-50 disabled:bg-slate-50 disabled:text-muted-foreground'
+                          : 'border-border bg-white hover:border-primary/40 hover:bg-accent disabled:bg-muted disabled:text-muted-foreground'
                       }`}
                       aria-pressed={selectedQuarter === quarter}
                     >

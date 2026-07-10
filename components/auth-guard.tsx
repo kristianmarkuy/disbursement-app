@@ -44,7 +44,7 @@ export function RequireAuth({ children, allowedRoles }: RequireAuthProps) {
           <p className="mt-2 text-sm text-muted-foreground">
             {isRejected
               ? 'Your account is not approved for this portal. Contact an administrator if this is unexpected.'
-              : 'An administrator needs to approve your account before you can access EduFinance.'}
+              : 'An administrator needs to approve your account before you can access LedgerOne.'}
           </p>
           <button
             type="button"

@@ -1,9 +1,9 @@
--- Mock data seed for EduFinance / Cash Disbursement Register
+-- Mock data seed for LedgerOne / Cash Disbursement Register
 --
 -- Local reset:
 --   supabase db reset
 --   If no auth user exists yet, this creates:
---     email: demo@edufinance.test
+--     email: demo@ledgerone.test
 --     password: password123
 --
 -- SQL editor:
@@ -16,7 +16,7 @@ DO $$
 DECLARE
   target_user_id uuid;
   demo_user_id uuid := '00000000-0000-4000-8000-000000000001';
-  demo_email text := 'demo@edufinance.test';
+  demo_email text := 'demo@ledgerone.test';
   central_high_id uuid := '10000000-0000-4000-8000-000000000001';
   lincoln_middle_id uuid := '10000000-0000-4000-8000-000000000002';
   washington_elem_id uuid := '10000000-0000-4000-8000-000000000003';

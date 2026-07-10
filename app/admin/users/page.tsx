@@ -150,7 +150,7 @@ export default function AdminUsersPage() {
               <Landmark className="h-5 w-5" />
             </div>
             <div>
-              <div className="text-xl font-semibold tracking-tight text-primary">EduFinance</div>
+              <div className="text-xl font-semibold tracking-tight text-primary">LedgerOne</div>
               <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                 Admin Portal
               </div>
@@ -159,25 +159,31 @@ export default function AdminUsersPage() {
           <nav className="flex-1 space-y-1 px-3 py-5">
             <Link
               href="/"
-              className="flex h-11 items-center gap-3 rounded px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary"
+              className="group flex h-11 items-center gap-3 rounded px-4 text-sm font-medium text-foreground hover:bg-muted hover:text-primary"
             >
-              <Building2 className="h-4 w-4" />
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                <Building2 className="h-4 w-4" aria-hidden="true" />
+              </span>
               All Schools
             </Link>
             <Link
               href="/admin/users"
-              className="relative flex h-11 items-center gap-3 rounded bg-[hsl(var(--sidebar-accent))] px-4 text-sm font-medium text-[hsl(var(--sidebar-accent-foreground))] before:absolute before:left-0 before:top-0 before:h-full before:w-[3px] before:bg-primary"
+              className="group relative flex h-11 items-center gap-3 rounded bg-[hsl(var(--sidebar-accent))] px-4 text-sm font-medium text-[hsl(var(--sidebar-accent-foreground))] before:absolute before:left-0 before:top-0 before:h-full before:w-[3px] before:bg-primary"
             >
-              <ShieldCheck className="h-4 w-4" />
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-primary text-primary-foreground">
+                <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+              </span>
               User Approvals
             </Link>
           </nav>
           <div className="border-t border-border p-4">
             <button
               onClick={signOut}
-              className="flex h-9 w-full items-center gap-3 rounded px-3 text-sm text-slate-700 hover:bg-slate-50 hover:text-primary"
+              className="group flex h-9 w-full items-center gap-3 rounded px-3 text-sm text-foreground hover:bg-muted hover:text-primary"
             >
-              <LogOut className="h-4 w-4" />
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                <LogOut className="h-4 w-4" aria-hidden="true" />
+              </span>
               Logout
             </button>
           </div>
@@ -191,7 +197,7 @@ export default function AdminUsersPage() {
             </div>
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               <span>{profile?.email}</span>
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-[10px] font-semibold text-white">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-white">
                 {(profile?.full_name || profile?.email || 'A').slice(0, 2).toUpperCase()}
               </div>
             </div>
@@ -243,7 +249,7 @@ export default function AdminUsersPage() {
                       value={searchTerm}
                       onChange={(event) => setSearchTerm(event.target.value)}
                       placeholder="Search name, email, role..."
-                      className="h-8 bg-slate-50 pl-8 text-sm"
+                      className="h-8 bg-muted pl-8 text-sm"
                     />
                   </div>
                   <Select
@@ -326,7 +332,7 @@ export default function AdminUsersPage() {
                         <tr key={account.id}>
                           <td>
                             <div className="flex items-center gap-3">
-                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-900 text-[11px] font-semibold text-white">
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-white">
                                 {getInitials(account)}
                               </div>
                               <div>
@@ -438,7 +444,7 @@ export default function AdminUsersPage() {
                 </table>
               </div>
               {!loading && users.length > 0 && (
-                <div className="flex items-center justify-between border-t bg-slate-50 px-4 py-3 text-xs text-muted-foreground">
+                <div className="flex items-center justify-between border-t bg-muted px-4 py-3 text-xs text-muted-foreground">
                   <span>
                     Showing {filteredUsers.length} of {users.length} users
                   </span>
@@ -477,7 +483,7 @@ function SummaryCard({
         ? 'bg-emerald-100 text-emerald-700'
         : tone === 'red'
           ? 'bg-red-100 text-red-700'
-          : 'bg-slate-100 text-slate-700';
+          : 'bg-muted text-foreground';
 
   return (
     <Card className="p-4">
@@ -515,7 +521,7 @@ function StatusBadge({ status }: { status: ApprovalStatus }) {
 function EmptyState({ title, description }: { title: string; description: string }) {
   return (
     <div className="mx-auto max-w-sm px-6 py-8">
-      <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-600">
+      <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-muted text-foreground">
         <ShieldCheck className="h-4 w-4" />
       </div>
       <p className="mt-3 text-sm font-medium text-foreground">{title}</p>

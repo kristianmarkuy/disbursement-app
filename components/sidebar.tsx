@@ -45,7 +45,7 @@ export function Sidebar({ school, schoolId }: SidebarProps) {
         </div>
         <div className="flex flex-col min-w-0">
           <span className="text-xl font-semibold tracking-tight text-primary">
-            EduFinance
+            LedgerOne
           </span>
           <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
             Admin Portal
@@ -65,13 +65,22 @@ export function Sidebar({ school, schoolId }: SidebarProps) {
               key={item.href || 'dashboard'}
               href={itemHref}
               className={cn(
-                'relative flex h-11 items-center gap-3 rounded px-4 text-sm font-medium transition-colors',
+                'group relative flex h-11 items-center gap-3 rounded px-4 text-sm font-medium transition-colors',
                 isActive
                   ? 'bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--sidebar-accent-foreground))] before:absolute before:left-0 before:top-0 before:h-full before:w-[3px] before:bg-primary'
-                  : 'text-slate-700 hover:bg-slate-50 hover:text-primary'
+                  : 'text-foreground hover:bg-muted hover:text-primary'
               )}
             >
-              <item.icon className="h-4 w-4" />
+              <span
+                className={cn(
+                  'flex h-7 w-7 shrink-0 items-center justify-center rounded transition-colors',
+                  isActive
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground'
+                )}
+              >
+                <item.icon className="h-4 w-4" aria-hidden="true" />
+              </span>
               {item.label}
             </Link>
           );
@@ -81,32 +90,40 @@ export function Sidebar({ school, schoolId }: SidebarProps) {
       <div className="border-t border-border p-4 space-y-1">
         <Link
           href="/"
-          className="flex h-9 items-center gap-3 rounded px-3 text-sm text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors"
+          className="group flex h-9 items-center gap-3 rounded px-3 text-sm text-foreground hover:bg-muted hover:text-primary transition-colors"
         >
-          <Building2 className="h-4 w-4" />
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+            <Building2 className="h-4 w-4" aria-hidden="true" />
+          </span>
           All Schools
         </Link>
         {canManageUsers && (
           <Link
             href="/admin/users"
-            className="flex h-9 items-center gap-3 rounded px-3 text-sm text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors"
+            className="group flex h-9 items-center gap-3 rounded px-3 text-sm text-foreground hover:bg-muted hover:text-primary transition-colors"
           >
-            <Users className="h-4 w-4" />
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+              <Users className="h-4 w-4" aria-hidden="true" />
+            </span>
             User Approvals
           </Link>
         )}
         <Link
           href="#"
-          className="flex h-9 items-center gap-3 rounded px-3 text-sm text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors"
+          className="group flex h-9 items-center gap-3 rounded px-3 text-sm text-foreground hover:bg-muted hover:text-primary transition-colors"
         >
-          <HelpCircle className="h-4 w-4" />
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+            <HelpCircle className="h-4 w-4" aria-hidden="true" />
+          </span>
           Support
         </Link>
         <button
           onClick={signOut}
-          className="flex h-9 w-full items-center gap-3 rounded px-3 text-sm text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors"
+          className="group flex h-9 w-full items-center gap-3 rounded px-3 text-sm text-foreground hover:bg-muted hover:text-primary transition-colors"
         >
-          <LogOut className="h-4 w-4" />
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+            <LogOut className="h-4 w-4" aria-hidden="true" />
+          </span>
           Sign Out
         </button>
       </div>

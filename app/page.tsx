@@ -417,7 +417,7 @@ export default function SchoolsPage() {
               <Landmark className="h-5 w-5" />
             </div>
             <div>
-              <div className="text-xl font-semibold tracking-tight text-primary">EduFinance</div>
+              <div className="text-xl font-semibold tracking-tight text-primary">LedgerOne</div>
               <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                 Admin Portal
               </div>
@@ -430,19 +430,23 @@ export default function SchoolsPage() {
                 Add School
               </Button>
             ) : (
-              <div className="rounded border bg-slate-50 p-3 text-xs leading-5 text-muted-foreground">
+              <div className="rounded border bg-muted p-3 text-xs leading-5 text-muted-foreground">
                 Viewer access is limited to reports.
               </div>
             )}
           </div>
           <nav className="flex-1 space-y-1 px-3">
-            <Link className="relative flex h-11 items-center gap-3 rounded bg-[hsl(var(--sidebar-accent))] px-4 text-sm font-medium text-[hsl(var(--sidebar-accent-foreground))] before:absolute before:left-0 before:top-0 before:h-full before:w-[3px] before:bg-primary" href="/">
-              <Building2 className="h-4 w-4" />
+            <Link className="group relative flex h-11 items-center gap-3 rounded bg-[hsl(var(--sidebar-accent))] px-4 text-sm font-medium text-[hsl(var(--sidebar-accent-foreground))] before:absolute before:left-0 before:top-0 before:h-full before:w-[3px] before:bg-primary" href="/">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-primary text-primary-foreground">
+                <Building2 className="h-4 w-4" aria-hidden="true" />
+              </span>
               Select School
             </Link>
             {canManageUsers && (
-              <Link className="flex h-11 items-center gap-3 rounded px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary" href="/admin/users">
-                <Users className="h-4 w-4" />
+              <Link className="group flex h-11 items-center gap-3 rounded px-4 text-sm font-medium text-foreground hover:bg-muted hover:text-primary" href="/admin/users">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                  <Users className="h-4 w-4" aria-hidden="true" />
+                </span>
                 User Approvals
               </Link>
             )}
@@ -453,12 +457,16 @@ export default function SchoolsPage() {
             </div>
           </nav>
           <div className="space-y-1 border-t border-border p-4">
-            <Link href="#" className="flex h-9 items-center gap-3 rounded px-3 text-sm text-slate-700 hover:bg-slate-50 hover:text-primary">
-              <HelpCircle className="h-4 w-4" />
+            <Link href="#" className="group flex h-9 items-center gap-3 rounded px-3 text-sm text-foreground hover:bg-muted hover:text-primary">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                <HelpCircle className="h-4 w-4" aria-hidden="true" />
+              </span>
               Support
             </Link>
-            <button onClick={signOut} className="flex h-9 w-full items-center gap-3 rounded px-3 text-sm text-slate-700 hover:bg-slate-50 hover:text-primary">
-              <LogOut className="h-4 w-4" />
+            <button onClick={signOut} className="group flex h-9 w-full items-center gap-3 rounded px-3 text-sm text-foreground hover:bg-muted hover:text-primary">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                <LogOut className="h-4 w-4" aria-hidden="true" />
+              </span>
               Logout
             </button>
           </div>
@@ -479,9 +487,9 @@ export default function SchoolsPage() {
               <span className="hidden text-muted-foreground md:inline">
                 Select a school to continue
               </span>
-              <Bell className="h-4 w-4 text-slate-700" />
-              <HelpCircle className="h-4 w-4 text-slate-700" />
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-[10px] font-semibold text-white">
+              <Bell className="h-4 w-4 text-foreground" />
+              <HelpCircle className="h-4 w-4 text-foreground" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-white">
                 {(profile?.full_name || profile?.email || 'U').slice(0, 2).toUpperCase()}
               </div>
             </div>
@@ -534,7 +542,7 @@ export default function SchoolsPage() {
                     className="pl-10"
                   />
                 </div>
-                <div className="flex items-center gap-3 text-slate-700">
+                <div className="flex items-center gap-3 text-foreground">
                   <Download className="h-4 w-4" />
                   <Printer className="h-4 w-4" />
                 </div>

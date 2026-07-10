@@ -9,6 +9,10 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['var(--font-sans)'],
+        display: ['var(--font-display)'],
+      },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'gradient-conic':
@@ -20,6 +24,13 @@ const config: Config = {
         sm: 'calc(var(--radius) - 4px)',
       },
       colors: {
+        ledger: {
+          100: '#21255b',
+          200: '#b8edfd',
+          300: '#f1f2f3',
+          400: '#f8f8f8',
+        },
+        surface: 'hsl(var(--surface))',
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         card: {
