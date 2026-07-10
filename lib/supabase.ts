@@ -44,7 +44,6 @@ export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
 
 export type UserProfile = {
   id: string;
-  clerk_user_id?: string | null;
   email: string;
   full_name: string | null;
   role: UserRole;

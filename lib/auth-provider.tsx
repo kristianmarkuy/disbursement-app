@@ -1,7 +1,8 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { useClerk, useSession, useSignIn, useSignUp, useUser } from '@clerk/nextjs';
+import { createContext, useContext, useEffect, useState } from 'react';
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import {
   UserProfile,
@@ -15,12 +16,9 @@ import {
   canViewReports,
 } from '@/lib/supabase';
 
-type ClerkUser = ReturnType<typeof useUser>['user'];
-type ClerkSession = ReturnType<typeof useSession>['session'];
-
 type AuthContextType = {
-  user: ClerkUser;
-  session: ClerkSession;
+  user: User | null;
+  session: Session | null;
   profile: UserProfile | null;
   role: UserRole | null;
   isApproved: boolean;
@@ -40,147 +38,91 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-function toError(error: unknown): Error {
-  if (error instanceof Error) {
-    return error;
-  }
-
-  if (error && typeof error === 'object' && 'errors' in error) {
-    const clerkError = error as { errors?: Array<{ message?: string }> };
-    const message = clerkError.errors?.map((item) => item.message).filter(Boolean).join(', ');
-
-    if (message) {
-      return new Error(message);
-    }
-  }
-
-  return new Error('Authentication failed. Please try again.');
-}
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { user, isLoaded: isUserLoaded } = useUser();
-  const { session } = useSession();
-  const { signOut: clerkSignOut } = useClerk();
-  const {
-    signIn: clerkSignIn,
-    setActive: setSignInActive,
-    isLoaded: isSignInLoaded,
-  } = useSignIn();
-  const {
-    signUp: clerkSignUp,
-    setActive: setSignUpActive,
-    isLoaded: isSignUpLoaded,
-  } = useSignUp();
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [profileLoading, setProfileLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  const loadProfile = useCallback(async (hasUser: boolean) => {
-    if (!hasUser) {
+  const loadProfile = async (currentUser: User | null) => {
+    if (!currentUser) {
       setProfile(null);
-      setProfileLoading(false);
       return;
     }
 
-    setProfileLoading(true);
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .eq('id', currentUser.id)
+      .maybeSingle();
 
-    try {
-      const response = await fetch('/api/auth/profile', {
-        cache: 'no-store',
-      });
-
-      if (!response.ok) {
-        setProfile(null);
-        return;
-      }
-
-      const data = (await response.json()) as { profile: UserProfile | null };
-      setProfile(data.profile);
-    } catch (error) {
+    if (error) {
       console.error('Failed to load user profile', error);
       setProfile(null);
-    } finally {
-      setProfileLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!isUserLoaded) {
       return;
     }
 
-    loadProfile(Boolean(user));
-  }, [isUserLoaded, loadProfile, user]);
+    setProfile((data as UserProfile | null) ?? null);
+  };
+
+  useEffect(() => {
+    const getSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      setSession(session);
+      setUser(session?.user ?? null);
+      await loadProfile(session?.user ?? null);
+      setLoading(false);
+    };
+
+    getSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      loadProfile(session?.user ?? null).finally(() => setLoading(false));
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const signIn = async (email: string, password: string) => {
-    if (!isSignInLoaded || !clerkSignIn || !setSignInActive) {
-      return { error: new Error('Authentication is still loading. Please try again.') };
-    }
-
-    try {
-      const result = await clerkSignIn.create({
-        identifier: email,
-        password,
-      });
-
-      if (result.status !== 'complete' || !result.createdSessionId) {
-        return { error: new Error('Additional verification is required before signing in.') };
-      }
-
-      await setSignInActive({ session: result.createdSessionId });
-      await loadProfile(true);
-
-      return { error: null };
-    } catch (error) {
-      return { error: toError(error) };
-    }
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    return { error };
   };
 
   const signUp = async (email: string, password: string, fullName?: string) => {
-    if (!isSignUpLoaded || !clerkSignUp || !setSignUpActive) {
-      return { error: new Error('Authentication is still loading. Please try again.') };
-    }
-
-    try {
-      const result = await clerkSignUp.create({
-        emailAddress: email,
-        password,
-        unsafeMetadata: {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
           full_name: fullName?.trim() || null,
         },
-      });
-
-      if (result.status !== 'complete' || !result.createdSessionId) {
-        return {
-          error: new Error('Additional verification is required before this account can be created.'),
-        };
-      }
-
-      await setSignUpActive({ session: result.createdSessionId });
-      await loadProfile(true);
-      await clerkSignOut();
-      setProfile(null);
-
-      return { error: null };
-    } catch (error) {
-      return { error: toError(error) };
-    }
+      },
+    });
+    return { error };
   };
 
   const signOut = async () => {
-    await clerkSignOut();
-    setProfile(null);
+    await supabase.auth.signOut();
     router.push('/login');
   };
 
   const refreshProfile = async () => {
-    await loadProfile(Boolean(user));
+    await loadProfile(user);
   };
 
   const role = profile?.role ?? null;
   const isApproved = profile?.approval_status === 'approved';
   const activeRole = isApproved ? role : null;
-  const loading = !isUserLoaded || profileLoading;
 
   return (
     <AuthContext.Provider

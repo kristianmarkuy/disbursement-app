@@ -58,8 +58,7 @@ model Transaction {
 }
 
 model UserProfile {
-  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  clerkUserId    String?   @unique @map("clerk_user_id")
+  id             String    @id @db.Uuid
   email          String
   fullName       String?   @map("full_name")
   role           String    @default("viewer")
