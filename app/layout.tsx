@@ -1,13 +1,10 @@
 import './globals.css';
 import type { Metadata } from 'next';
-import { Inter_Tight } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import { Toaster } from 'sonner';
 import { AuthProvider } from '@/lib/auth-provider';
 
-const interTight = Inter_Tight({
-  subsets: ['latin'],
-  variable: '--font-inter-tight',
-});
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'LedgerOne',
@@ -21,7 +18,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={interTight.variable}>
+      <body className={inter.className}>
         <AuthProvider>
           {children}
           <Toaster position="top-right" richColors closeButton />
