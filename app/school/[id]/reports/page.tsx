@@ -48,6 +48,62 @@ type GroupedTransaction = {
   total: number;
 };
 
+type RegisterPaymentColumn = {
+  key: string;
+  label: string;
+  subLabel: string;
+  matches: (text: string) => boolean;
+};
+
+const REGISTER_PAYMENT_COLUMNS: RegisterPaymentColumn[] = [
+  {
+    key: 'exacting',
+    label: 'Exacting Expense',
+    subLabel: '(50204010)',
+    matches: (text) => text.includes('exacting'),
+  },
+  {
+    key: 'mooe',
+    label: 'MOOE Expense',
+    subLabel: '(50204010)',
+    matches: (text) =>
+      text.includes('internet') ||
+      text.includes('utility') ||
+      text.includes('utilities') ||
+      text.includes('mooe'),
+  },
+  {
+    key: 'professional-services',
+    label: 'Other Professional Services',
+    subLabel: '(50211990)',
+    matches: (text) => text.includes('professional service'),
+  },
+  {
+    key: 'telephone',
+    label: 'Telephone Expenses-MO',
+    subLabel: '(50205020)',
+    matches: (text) => text.includes('telephone') || text.includes('load card') || text.includes('communication'),
+  },
+  {
+    key: 'office-supplies',
+    label: 'Office Supplies Expense',
+    subLabel: '(50203010)',
+    matches: (text) => text.includes('office suppl'),
+  },
+  {
+    key: 'other-supplies',
+    label: 'Other Supplies & Materials Expense',
+    subLabel: '(50203090)',
+    matches: (text) => text.includes('supplies') || text.includes('materials') || text.includes('hardware'),
+  },
+  {
+    key: 'training',
+    label: 'Training Expenses',
+    subLabel: '(50202010)',
+    matches: (text) => text.includes('training'),
+  },
+];
+
 export default function SchoolReportsPage() {
   const params = useParams();
   const schoolId = params.id as string;
@@ -162,42 +218,264 @@ export default function SchoolReportsPage() {
   const sortedFunds = Object.entries(fundSummary).sort((a, b) => b[1] - a[1]);
 
   function exportToExcel() {
-    const headers = [
-      'Date',
-      'DV Number',
-      'Check Number',
-      'Payee',
-      'Particulars',
-      'Amount',
-      'Fund Source',
-      'UACS Code',
-      'Category',
-    ];
-    const rows = quarterTxns.map((t) => [
-      t.date,
-      t.dv_number,
-      t.check_number || '',
-      `"${t.payee}"`,
-      `"${t.particulars || ''}"`,
-      Number(t.amount).toFixed(2),
-      t.fund_source,
-      t.uacs_code || '',
-      t.category,
-    ]);
+    const isCancelledTransaction = (transaction: Transaction) => {
+      const text = `${transaction.payee} ${transaction.particulars || ''}`.toLowerCase();
+      return text.includes('cancelled') || text.includes('canceled');
+    };
 
-    let csv = headers.join(',') + '\n';
-    rows.forEach((r) => {
-      csv += r.join(',') + '\n';
-    });
-    csv += '\n,,,,"TOTAL",' + totalAmount.toFixed(2) + ',,,\n';
+    const escapeCell = (value: string | number | null | undefined) =>
+      String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
 
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const formatRegisterDate = (date: string) => {
+      const d = parseLocalDate(date);
+      return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+    };
+
+    const formatRegisterNumber = (amount: number) => {
+      if (!Number.isFinite(amount) || amount === 0) return '';
+      return amount.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+    };
+
+    const getTransactionText = (transaction: Transaction) =>
+      [
+        transaction.payee,
+        transaction.particulars,
+        transaction.category,
+        transaction.fund_source,
+        transaction.uacs_code,
+        transaction.uacs_code ? uacsLookup[transaction.uacs_code] : '',
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+    const getPaymentColumn = (transaction: Transaction) =>
+      REGISTER_PAYMENT_COLUMNS.find((column) => column.matches(getTransactionText(transaction)));
+
+    const getAccountDescription = (transaction: Transaction) => {
+      if (transaction.uacs_code && uacsLookup[transaction.uacs_code]) {
+        return uacsLookup[transaction.uacs_code];
+      }
+
+      return transaction.category;
+    };
+
+    const registerTotal = quarterTxns.reduce(
+      (sum, transaction) =>
+        isCancelledTransaction(transaction) ? sum : sum + Number(transaction.amount),
+      0
+    );
+
+    let runningBalance = registerTotal;
+    const transactionRows = quarterTxns
+      .map((transaction) => {
+        const amount = Number(transaction.amount);
+        const cancelled = isCancelledTransaction(transaction);
+        const paymentColumn = getPaymentColumn(transaction);
+        const balanceAfterPayment = cancelled ? runningBalance : runningBalance - amount;
+        const particulars = cancelled
+          ? 'CANCELLED'
+          : `${transaction.payee}${transaction.particulars ? ` - ${transaction.particulars}` : ''}`;
+        const breakdownCells = REGISTER_PAYMENT_COLUMNS.map((column) => {
+          const columnAmount =
+            !cancelled && paymentColumn?.key === column.key ? formatRegisterNumber(amount) : '';
+          return `<td class="number">${columnAmount}</td>`;
+        }).join('');
+        const otherAmount = !cancelled && !paymentColumn ? formatRegisterNumber(amount) : '';
+
+        runningBalance = balanceAfterPayment;
+
+        return `
+          <tr class="${cancelled ? 'cancelled' : ''}">
+            <td>${escapeCell(formatRegisterDate(transaction.date))}</td>
+            <td>${escapeCell(transaction.dv_number || transaction.check_number || '')}</td>
+            <td>${escapeCell(particulars)}</td>
+            <td class="number"></td>
+            <td class="number">${cancelled ? '' : formatRegisterNumber(amount)}</td>
+            <td class="number">${cancelled ? '' : formatRegisterNumber(Math.max(balanceAfterPayment, 0))}</td>
+            ${breakdownCells}
+            <td>${escapeCell(!cancelled && !paymentColumn ? getAccountDescription(transaction) : '')}</td>
+            <td class="code">${escapeCell(!cancelled && !paymentColumn ? transaction.uacs_code || '' : '')}</td>
+            <td class="number">${otherAmount}</td>
+          </tr>
+        `;
+      })
+      .join('');
+
+    const paymentColumnTotals = REGISTER_PAYMENT_COLUMNS.map((column) =>
+      quarterTxns.reduce((sum, transaction) => {
+        if (isCancelledTransaction(transaction)) return sum;
+        return getPaymentColumn(transaction)?.key === column.key
+          ? sum + Number(transaction.amount)
+          : sum;
+      }, 0)
+    );
+    const otherTotal = quarterTxns.reduce((sum, transaction) => {
+      if (isCancelledTransaction(transaction)) return sum;
+      return getPaymentColumn(transaction) ? sum : sum + Number(transaction.amount);
+    }, 0);
+    const monthLabel = getQuarterMonths(quarter).replace(' - ', '-').toUpperCase();
+    const quarterOrdinal = ['1ST', '2ND', '3RD', '4TH'][quarter - 1];
+    const exportedAt = new Date().toLocaleDateString('en-PH');
+    const paymentHeaderCells = REGISTER_PAYMENT_COLUMNS.map(
+      (column) => `
+        <th>
+          ${escapeCell(column.label)}
+          <br />
+          <span>${escapeCell(column.subLabel)}</span>
+        </th>
+      `
+    ).join('');
+    const paymentTotalCells = paymentColumnTotals
+      .map((amount) => `<td class="number total-cell">${formatRegisterNumber(amount)}</td>`)
+      .join('');
+
+    const html = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+        <head>
+          <meta charset="UTF-8" />
+          <style>
+            table { border-collapse: collapse; font-family: Arial, sans-serif; font-size: 10px; }
+            td, th { border: 1px solid #000; padding: 2px 4px; vertical-align: middle; }
+            th { font-weight: 700; text-align: center; }
+            .no-border { border: none; }
+            .title { border: none; font-size: 13px; font-weight: 700; text-align: center; text-transform: uppercase; }
+            .subtitle { border: none; font-size: 11px; font-weight: 700; text-align: center; text-transform: uppercase; }
+            .meta { border: none; font-size: 8px; font-weight: 700; }
+            .meta-line { border-bottom: 1px solid #000; font-weight: 400; }
+            .header-group { background: #fff; font-weight: 700; text-align: center; }
+            .small { font-size: 7px; }
+            .number { mso-number-format: "#,##0.00"; text-align: right; white-space: nowrap; }
+            .code { mso-number-format: "\\@"; text-align: center; }
+            .particulars { width: 360px; }
+            .cancelled td { background: #ff0000; color: #000; font-weight: 700; }
+            .cash-advance td { font-weight: 700; }
+            .total-row td { font-weight: 700; }
+            .footer td { border: none; font-size: 8px; text-align: center; }
+            .note { border: none; font-size: 7px; text-align: center; }
+          </style>
+        </head>
+        <body>
+          <table>
+            <colgroup>
+              <col style="width: 70px" />
+              <col style="width: 105px" />
+              <col style="width: 390px" />
+              <col style="width: 90px" />
+              <col style="width: 90px" />
+              <col style="width: 90px" />
+              <col style="width: 85px" />
+              <col style="width: 85px" />
+              <col style="width: 85px" />
+              <col style="width: 85px" />
+              <col style="width: 85px" />
+              <col style="width: 85px" />
+              <col style="width: 85px" />
+              <col style="width: 175px" />
+              <col style="width: 120px" />
+              <col style="width: 90px" />
+            </colgroup>
+            <tr>
+              <td colspan="16" class="title">${escapeCell(school?.name || 'School')}</td>
+            </tr>
+            <tr>
+              <td colspan="16" class="subtitle">Cash Disbursements Register</td>
+            </tr>
+            <tr>
+              <td colspan="16" class="subtitle">${escapeCell(monthLabel)} ${year} (${quarterOrdinal} QUARTER)</td>
+            </tr>
+            <tr>
+              <td colspan="3" class="meta">Entity Name: <span class="meta-line">DepEd</span></td>
+              <td colspan="8" class="meta"></td>
+              <td colspan="5" class="meta">Name of Accountable Officer: <span class="meta-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td>
+            </tr>
+            <tr>
+              <td colspan="3" class="meta">Sub-Office/District/Division: <span class="meta-line">${escapeCell(school?.division || '')}</span></td>
+              <td colspan="8" class="meta"></td>
+              <td colspan="5" class="meta">Official Designation: <span class="meta-line">School Head</span></td>
+            </tr>
+            <tr>
+              <td colspan="3" class="meta">Municipality/City/Province: <span class="meta-line">${escapeCell(school?.address || '')}</span></td>
+              <td colspan="8" class="meta"></td>
+              <td colspan="5" class="meta">Station: <span class="meta-line">${escapeCell(school?.name || '')}</span></td>
+            </tr>
+            <tr>
+              <td colspan="3" class="meta">Fund Cluster: <span class="meta-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td>
+              <td colspan="8" class="meta"></td>
+              <td colspan="5" class="meta">Sheet No.: <span class="meta-line">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></td>
+            </tr>
+            <tr>
+              <td class="no-border" colspan="16">&nbsp;</td>
+            </tr>
+            <tr>
+              <th rowspan="3">Date</th>
+              <th rowspan="3">DV/<br />Payroll/<br />Check<br />No.</th>
+              <th rowspan="3" class="particulars">PARTICULARS</th>
+              <th colspan="3" class="header-group">Advances for<br /><span class="small">(19901010)</span></th>
+              <th colspan="10" class="header-group">BREAKDOWN OF PAYMENTS</th>
+            </tr>
+            <tr>
+              <th rowspan="2">Cash<br />Advance</th>
+              <th rowspan="2">Payments</th>
+              <th rowspan="2">Balance</th>
+              ${paymentHeaderCells}
+              <th colspan="3">OTHERS</th>
+            </tr>
+            <tr>
+              <th>Account Description</th>
+              <th>UACS Object Code</th>
+              <th>Amount</th>
+            </tr>
+            <tr class="cash-advance">
+              <td></td>
+              <td></td>
+              <td>Cash advance of school MOOE from ${escapeCell(monthLabel)} ${year}</td>
+              <td class="number">${formatRegisterNumber(registerTotal)}</td>
+              <td class="number"></td>
+              <td class="number">${formatRegisterNumber(registerTotal)}</td>
+              <td colspan="10"></td>
+            </tr>
+            ${transactionRows}
+            <tr class="total-row">
+              <td></td>
+              <td></td>
+              <td style="text-align: right;">TOTAL:</td>
+              <td class="number total-cell">${formatRegisterNumber(registerTotal)}</td>
+              <td class="number total-cell">${formatRegisterNumber(registerTotal)}</td>
+              <td></td>
+              ${paymentTotalCells}
+              <td></td>
+              <td></td>
+              <td class="number total-cell">${formatRegisterNumber(otherTotal)}</td>
+            </tr>
+            <tr>
+              <td colspan="9" class="no-border"></td>
+              <td colspan="7" class="note">The total of the Advances for Operating Expenses - Payments column must always be equal to the sum of the totals of the Breakdown of Payments columns.</td>
+            </tr>
+            <tr class="footer">
+              <td colspan="6">PREPARED BY:<br /><br /><strong>&nbsp;</strong><br />DISBURSING OFFICER<br />Date: ${escapeCell(exportedAt)}</td>
+              <td colspan="5"></td>
+              <td colspan="5">RECEIVED BY:<br /><br /><strong>&nbsp;</strong><br />PRE-AUDIT UNIT PERSONNEL<br />Date: ${escapeCell(exportedAt)}</td>
+            </tr>
+          </table>
+        </body>
+      </html>
+    `;
+
+    const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `CDR_${school?.code || 'SCHOOL'}_${selectedQuarter}.csv`;
+    link.download = `CDR_${school?.code || 'SCHOOL'}_${selectedQuarter}.xls`;
     link.click();
     URL.revokeObjectURL(link.href);
-    toast.success('Exported to CSV');
+    toast.success('Exported formatted Excel register');
   }
 
   function exportToPDF() {

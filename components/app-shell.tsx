@@ -2,6 +2,7 @@
 
 import { Sidebar } from '@/components/sidebar';
 import { School } from '@/lib/supabase';
+import { useAuth } from '@/lib/auth-provider';
 import { Bell, HelpCircle, Search } from 'lucide-react';
 
 interface AppShellProps {
@@ -11,6 +12,9 @@ interface AppShellProps {
 }
 
 export function AppShell({ school, schoolId, children }: AppShellProps) {
+  const { profile } = useAuth();
+  const initials = (profile?.full_name || profile?.email || 'U').slice(0, 2).toUpperCase();
+
   return (
     <div className="min-h-screen bg-background">
       <Sidebar school={school} schoolId={schoolId} />
@@ -35,7 +39,7 @@ export function AppShell({ school, schoolId, children }: AppShellProps) {
               <HelpCircle className="h-4 w-4" />
             </button>
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-[10px] font-semibold text-white">
-              AD
+              {initials}
             </div>
           </div>
         </header>

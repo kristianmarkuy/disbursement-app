@@ -38,11 +38,60 @@ export type UacsCode = {
   updated_at: string;
 };
 
+export type UserRole = 'admin' | 'officer' | 'viewer';
+
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected';
+
+export type UserProfile = {
+  id: string;
+  clerk_user_id?: string | null;
+  email: string;
+  full_name: string | null;
+  role: UserRole;
+  approval_status: ApprovalStatus;
+  approved_by: string | null;
+  approved_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type SchoolTransactionStats = {
   school_id: string;
   txn_count: number;
   total_amount: number;
 };
+
+export const USER_ROLES: UserRole[] = ['admin', 'officer', 'viewer'];
+
+export const APPROVAL_STATUSES: ApprovalStatus[] = ['pending', 'approved', 'rejected'];
+
+export function canManageSchools(role?: UserRole | null): boolean {
+  return role === 'admin' || role === 'officer';
+}
+
+export function canDeleteSchools(role?: UserRole | null): boolean {
+  return role === 'admin';
+}
+
+export function canManageTransactions(role?: UserRole | null): boolean {
+  return role === 'admin' || role === 'officer';
+}
+
+export function canDeleteTransactions(role?: UserRole | null): boolean {
+  return role === 'admin';
+}
+
+export function canManageUacs(role?: UserRole | null): boolean {
+  return role === 'admin';
+}
+
+export function canManageUsers(role?: UserRole | null): boolean {
+  return role === 'admin';
+}
+
+export function canViewReports(role?: UserRole | null): boolean {
+  return role === 'admin' || role === 'officer' || role === 'viewer';
+}
 
 export const CATEGORIES = [
   'Personal Services',

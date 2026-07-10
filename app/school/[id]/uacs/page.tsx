@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
+import { useAuth } from '@/lib/auth-provider';
 import { RequireAuth } from '@/components/auth-guard';
 import { AppShell } from '@/components/app-shell';
 import { UacsModal } from '@/components/uacs-modal';
@@ -33,6 +34,7 @@ import { toast } from 'sonner';
 export default function SchoolUacsPage() {
   const params = useParams();
   const schoolId = params.id as string;
+  const { canManageUacs } = useAuth();
 
   const [school, setSchool] = useState<School | null>(null);
   const [codes, setCodes] = useState<UacsCode[]>([]);
@@ -73,17 +75,30 @@ export default function SchoolUacsPage() {
   }, [fetchCodes]);
 
   function handleAdd() {
+    if (!canManageUacs) {
+      toast.error('Only admins can manage UACS codes');
+      return;
+    }
     setEditing(null);
     setModalOpen(true);
   }
 
   function handleEdit(code: UacsCode) {
+    if (!canManageUacs) {
+      toast.error('Only admins can manage UACS codes');
+      return;
+    }
     setEditing(code);
     setModalOpen(true);
   }
 
   async function handleDelete() {
     if (!deleteTarget) return;
+    if (!canManageUacs) {
+      toast.error('Only admins can delete UACS codes');
+      setDeleteTarget(null);
+      return;
+    }
     const { error } = await supabase
       .from('uacs_codes')
       .delete()
@@ -98,7 +113,7 @@ export default function SchoolUacsPage() {
   }
 
   return (
-    <RequireAuth>
+    <RequireAuth allowedRoles={['admin']}>
       <AppShell school={school} schoolId={schoolId}>
       <div className="space-y-4">
         <div className="flex items-center justify-between">

@@ -173,7 +173,7 @@ export default function SchoolDashboard() {
   const recentTxnsList = recentTxns;
 
   return (
-    <RequireAuth>
+    <RequireAuth allowedRoles={['admin', 'officer']}>
       <AppShell school={school} schoolId={schoolId}>
         <div className="space-y-6">
         <div className="flex items-center justify-between">

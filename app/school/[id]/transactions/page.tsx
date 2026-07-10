@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'next/navigation';
+import { useAuth } from '@/lib/auth-provider';
 import { RequireAuth } from '@/components/auth-guard';
 import { AppShell } from '@/components/app-shell';
 import { TransactionModal } from '@/components/transaction-modal';
@@ -64,6 +65,7 @@ const PAGE_SIZE = 20;
 export default function SchoolTransactionsPage() {
   const params = useParams();
   const schoolId = params.id as string;
+  const { canManageTransactions, canDeleteTransactions } = useAuth();
 
   const [school, setSchool] = useState<School | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -151,17 +153,30 @@ export default function SchoolTransactionsPage() {
   }, [fetchTransactions]);
 
   function handleAdd() {
+    if (!canManageTransactions) {
+      toast.error('Your role cannot manage transactions');
+      return;
+    }
     setEditingTxn(null);
     setModalOpen(true);
   }
 
   function handleEdit(txn: Transaction) {
+    if (!canManageTransactions) {
+      toast.error('Your role cannot manage transactions');
+      return;
+    }
     setEditingTxn(txn);
     setModalOpen(true);
   }
 
   async function handleDelete() {
     if (!deleteTarget) return;
+    if (!canDeleteTransactions) {
+      toast.error('Only admins can delete transactions');
+      setDeleteTarget(null);
+      return;
+    }
     const { error } = await supabase
       .from('transactions')
       .delete()
@@ -187,7 +202,7 @@ export default function SchoolTransactionsPage() {
   const pageTotal = transactions.reduce((s, t) => s + Number(t.amount), 0);
 
   return (
-    <RequireAuth>
+    <RequireAuth allowedRoles={['admin', 'officer']}>
       <AppShell school={school} schoolId={schoolId}>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -197,10 +212,12 @@ export default function SchoolTransactionsPage() {
               Cash Disbursement Register
             </p>
           </div>
-          <Button onClick={handleAdd} size="sm" className="gap-1.5">
-            <Plus className="h-4 w-4" />
-            Add Transaction
-          </Button>
+          {canManageTransactions && (
+            <Button onClick={handleAdd} size="sm" className="gap-1.5">
+              <Plus className="h-4 w-4" />
+              Add Transaction
+            </Button>
+          )}
         </div>
 
         {/* Quarter Tabs + Year */}
@@ -366,24 +383,30 @@ export default function SchoolTransactionsPage() {
                       </Badge>
                     </td>
                     <td className="text-center">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                            <MoreHorizontal className="h-3.5 w-3.5" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleEdit(t)}>
-                            <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => setDeleteTarget(t)}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      {canManageTransactions || canDeleteTransactions ? (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                              <MoreHorizontal className="h-3.5 w-3.5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {canManageTransactions && (
+                              <DropdownMenuItem onClick={() => handleEdit(t)}>
+                                <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
+                              </DropdownMenuItem>
+                            )}
+                            {canDeleteTransactions && (
+                              <DropdownMenuItem
+                                onClick={() => setDeleteTarget(t)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      ) : null}
                     </td>
                   </tr>
                 ))}

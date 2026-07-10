@@ -36,6 +36,8 @@ import {
   Bell,
   Download,
   Printer,
+  Users,
+  Database,
 } from 'lucide-react';
 import { supabase, School, SchoolTransactionStats, formatCurrency } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -47,13 +49,20 @@ type SchoolWithStats = School & {
 };
 
 export default function SchoolsPage() {
-  const { signOut } = useAuth();
+  const {
+    signOut,
+    profile,
+    canManageSchools,
+    canDeleteSchools,
+    canManageUsers,
+  } = useAuth();
   const [schools, setSchools] = useState<SchoolWithStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingSchool, setEditingSchool] = useState<School | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<School | null>(null);
   const [search, setSearch] = useState('');
+  const [loadingSampleData, setLoadingSampleData] = useState(false);
 
   const fetchSchools = useCallback(async () => {
     setLoading(true);
@@ -111,17 +120,281 @@ export default function SchoolsPage() {
   }, [fetchSchools]);
 
   function handleAdd() {
+    if (!canManageSchools) {
+      toast.error('Your role cannot manage schools');
+      return;
+    }
     setEditingSchool(null);
     setModalOpen(true);
   }
 
   function handleEdit(school: School) {
+    if (!canManageSchools) {
+      toast.error('Your role cannot manage schools');
+      return;
+    }
     setEditingSchool(school);
     setModalOpen(true);
   }
 
+  async function handleLoadSampleData() {
+    if (!canManageSchools) {
+      toast.error('Your role cannot create sample data');
+      return;
+    }
+
+    setLoadingSampleData(true);
+
+    const sampleSchoolCode = 'CBTN-SAMPLE';
+    const { data: existingSchool, error: existingSchoolError } = await supabase
+      .from('schools')
+      .select('*')
+      .eq('code', sampleSchoolCode)
+      .maybeSingle();
+
+    if (existingSchoolError) {
+      toast.error(`Failed to check sample school: ${existingSchoolError.message}`);
+      setLoadingSampleData(false);
+      return;
+    }
+
+    let sampleSchool = existingSchool as School | null;
+
+    if (!sampleSchool) {
+      const { data: insertedSchool, error: schoolError } = await supabase
+        .from('schools')
+        .insert({
+          name: 'Cabatuan Elementary School',
+          code: sampleSchoolCode,
+          address: 'Cabatuan City',
+          division: 'Schools Division of Cabayog City / Quezon District',
+          region: 'Region VIII',
+        })
+        .select('*')
+        .single();
+
+      if (schoolError) {
+        toast.error(`Failed to create sample school: ${schoolError.message}`);
+        setLoadingSampleData(false);
+        return;
+      }
+
+      sampleSchool = insertedSchool as School;
+    }
+
+    const { count, error: countError } = await supabase
+      .from('transactions')
+      .select('id', { count: 'exact', head: true })
+      .eq('school_id', sampleSchool.id)
+      .gte('date', '2026-01-01')
+      .lt('date', '2026-04-01');
+
+    if (countError) {
+      toast.error(`Failed to check sample transactions: ${countError.message}`);
+      setLoadingSampleData(false);
+      return;
+    }
+
+    if ((count ?? 0) > 0) {
+      toast.info('Sample Q1 2026 data already exists');
+      await fetchSchools();
+      setLoadingSampleData(false);
+      return;
+    }
+
+    const sampleTransactions = [
+      {
+        date: '2026-01-05',
+        dv_number: '1506991',
+        check_number: '1506991',
+        payee: 'Samara Electric Cooperative, Inc.',
+        particulars: 'Electricity bill for January 2026',
+        amount: 4319.26,
+        fund_source: 'General Fund',
+        uacs_code: '5020403000',
+        category: 'Maintenance',
+      },
+      {
+        date: '2026-01-20',
+        dv_number: '1506992',
+        check_number: '1506992',
+        payee: 'Leah R. Vargas',
+        particulars: 'Salary of utility staff for January and February 2026',
+        amount: 16000,
+        fund_source: 'General Fund',
+        uacs_code: '5020301000',
+        category: 'Personal Services',
+      },
+      {
+        date: '2026-01-25',
+        dv_number: '1506993',
+        check_number: '1506993',
+        payee: 'Reneboy M. Gaviola',
+        particulars: 'Internet bill for January 2026',
+        amount: 2000,
+        fund_source: 'General Fund',
+        uacs_code: '5020403000',
+        category: 'Maintenance',
+      },
+      {
+        date: '2026-02-05',
+        dv_number: '1506994',
+        check_number: '1506994',
+        payee: 'Bernard M. Mallari Jr.',
+        particulars: 'Internet bill for February 2026',
+        amount: 3000,
+        fund_source: 'General Fund',
+        uacs_code: '5020403000',
+        category: 'Maintenance',
+      },
+      {
+        date: '2026-02-10',
+        dv_number: '1506995',
+        check_number: '1506995',
+        payee: 'Sonja M. Cuizon',
+        particulars: 'Reimbursement of grasscutter supplies and materials',
+        amount: 1000,
+        fund_source: 'General Fund',
+        uacs_code: '5020402000',
+        category: 'Maintenance',
+      },
+      {
+        date: '2026-02-15',
+        dv_number: '1506996',
+        check_number: '1506996',
+        payee: 'Sonja M. Cuizon',
+        particulars: 'Reimbursement for landline telephone expenses',
+        amount: 700,
+        fund_source: 'General Fund',
+        uacs_code: '5020403000',
+        category: 'Maintenance',
+      },
+      {
+        date: '2026-02-20',
+        dv_number: '1506997',
+        check_number: '1506997',
+        payee: 'CANCELLED',
+        particulars: 'Cancelled check entry',
+        amount: 0,
+        fund_source: 'General Fund',
+        uacs_code: null,
+        category: 'Others',
+      },
+      {
+        date: '2026-03-05',
+        dv_number: '1507000',
+        check_number: '1507000',
+        payee: 'Uragon Everbuilt Trading',
+        particulars: 'Hardware supplies',
+        amount: 27465,
+        fund_source: 'General Fund',
+        uacs_code: '5020402000',
+        category: 'Maintenance',
+      },
+      {
+        date: '2026-03-09',
+        dv_number: '1507001',
+        check_number: '1507001',
+        payee: 'Allworld Communications-Epson Ink & Sets',
+        particulars: 'Office supplies and ink sets',
+        amount: 9800,
+        fund_source: 'General Fund',
+        uacs_code: '5020402000',
+        category: 'Maintenance',
+      },
+      {
+        date: '2026-03-12',
+        dv_number: '1507002',
+        check_number: '1507002',
+        payee: 'Sonja M. Cuizon',
+        particulars: 'Payment of laborer repair home',
+        amount: 14000,
+        fund_source: 'General Fund',
+        uacs_code: '5020405000',
+        category: 'Maintenance',
+      },
+      {
+        date: '2026-03-18',
+        dv_number: '1507003',
+        check_number: '1507003',
+        payee: 'Sonja M. Cuizon',
+        particulars: 'Load allowance for admin phone',
+        amount: 2000,
+        fund_source: 'General Fund',
+        uacs_code: '5020403000',
+        category: 'Maintenance',
+      },
+      {
+        date: '2026-03-20',
+        dv_number: '1507004',
+        check_number: '1507004',
+        payee: 'Rinal E. Comota',
+        particulars: 'Travel expense',
+        amount: 2550,
+        fund_source: 'General Fund',
+        uacs_code: '5020401000',
+        category: 'Travel',
+      },
+      {
+        date: '2026-03-27',
+        dv_number: '1507005',
+        check_number: '1507005',
+        payee: 'Sonja M. Cuizon',
+        particulars: 'Reimbursement of school supplies for school and office use',
+        amount: 247,
+        fund_source: 'General Fund',
+        uacs_code: '5020402000',
+        category: 'Maintenance',
+      },
+      {
+        date: '2026-03-30',
+        dv_number: '1507006',
+        check_number: '1507006',
+        payee: 'Carl Ralph E. Honrales',
+        particulars: 'Installation of windows for Grade 1 to 3 rooms',
+        amount: 5000,
+        fund_source: 'General Fund',
+        uacs_code: '5020405000',
+        category: 'Maintenance',
+      },
+      {
+        date: '2026-03-31',
+        dv_number: '1507007',
+        check_number: '1507007',
+        payee: 'Sonja M. Cuizon',
+        particulars: 'Reimbursement of ten load cards',
+        amount: 690,
+        fund_source: 'General Fund',
+        uacs_code: '5020403000',
+        category: 'Maintenance',
+      },
+    ].map((transaction) => ({
+      ...transaction,
+      school_id: sampleSchool!.id,
+    }));
+
+    const { error: transactionError } = await supabase
+      .from('transactions')
+      .insert(sampleTransactions);
+
+    if (transactionError) {
+      toast.error(`Failed to create sample transactions: ${transactionError.message}`);
+      setLoadingSampleData(false);
+      return;
+    }
+
+    toast.success('Sample Q1 2026 data created');
+    await fetchSchools();
+    setLoadingSampleData(false);
+  }
+
   async function handleDelete() {
     if (!deleteTarget) return;
+    if (!canDeleteSchools) {
+      toast.error('Only admins can delete schools');
+      setDeleteTarget(null);
+      return;
+    }
     const { error } = await supabase
       .from('schools')
       .delete()
@@ -151,18 +424,32 @@ export default function SchoolsPage() {
             </div>
           </div>
           <div className="px-4 py-5">
-            <Button onClick={handleAdd} className="h-10 w-full gap-2">
-              <Plus className="h-4 w-4" />
-              Add School
-            </Button>
+            {canManageSchools ? (
+              <Button onClick={handleAdd} className="h-10 w-full gap-2">
+                <Plus className="h-4 w-4" />
+                Add School
+              </Button>
+            ) : (
+              <div className="rounded border bg-slate-50 p-3 text-xs leading-5 text-muted-foreground">
+                Viewer access is limited to reports.
+              </div>
+            )}
           </div>
           <nav className="flex-1 space-y-1 px-3">
             <Link className="relative flex h-11 items-center gap-3 rounded bg-[hsl(var(--sidebar-accent))] px-4 text-sm font-medium text-[hsl(var(--sidebar-accent-foreground))] before:absolute before:left-0 before:top-0 before:h-full before:w-[3px] before:bg-primary" href="/">
               <Building2 className="h-4 w-4" />
               Select School
             </Link>
+            {canManageUsers && (
+              <Link className="flex h-11 items-center gap-3 rounded px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:text-primary" href="/admin/users">
+                <Users className="h-4 w-4" />
+                User Approvals
+              </Link>
+            )}
             <div className="px-4 pt-3 text-xs leading-5 text-muted-foreground">
-              Open a school to access its dashboard, transactions, UACS codes, and reports.
+              {canManageSchools
+                ? 'Open a school to access its dashboard, transactions, UACS codes, and reports.'
+                : 'Choose a school to view its reports.'}
             </div>
           </nav>
           <div className="space-y-1 border-t border-border p-4">
@@ -194,7 +481,9 @@ export default function SchoolsPage() {
               </span>
               <Bell className="h-4 w-4 text-slate-700" />
               <HelpCircle className="h-4 w-4 text-slate-700" />
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-[10px] font-semibold text-white">AD</div>
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900 text-[10px] font-semibold text-white">
+                {(profile?.full_name || profile?.email || 'U').slice(0, 2).toUpperCase()}
+              </div>
             </div>
           </header>
 
@@ -203,7 +492,9 @@ export default function SchoolsPage() {
               <div>
                 <h1 className="text-3xl font-semibold tracking-tight">Schools Directory</h1>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  Manage institutional profiles, view transaction history, and update contact information.
+                  {canManageSchools
+                    ? 'Manage institutional profiles, view transaction history, and update contact information.'
+                    : 'Select a school to view available financial reports.'}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -211,10 +502,24 @@ export default function SchoolsPage() {
                   <Download className="h-4 w-4" />
                   Export
                 </Button>
-                <Button onClick={handleAdd} size="sm" className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Add School
-                </Button>
+                {canManageSchools && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleLoadSampleData}
+                    disabled={loadingSampleData}
+                    className="gap-2"
+                  >
+                    <Database className="h-4 w-4" />
+                    {loadingSampleData ? 'Loading...' : 'Load Sample Data'}
+                  </Button>
+                )}
+                {canManageSchools && (
+                  <Button onClick={handleAdd} size="sm" className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    Add School
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -266,7 +571,7 @@ export default function SchoolsPage() {
                       <tr key={s.id}>
                         <td><span className="block h-4 w-4 rounded-sm border bg-white" /></td>
                         <td>
-                          <Link href={`/school/${s.id}`} className="font-medium text-primary hover:underline">
+                          <Link href={canManageSchools ? `/school/${s.id}` : `/school/${s.id}/reports`} className="font-medium text-primary hover:underline">
                             {s.name}
                           </Link>
                         </td>
@@ -280,24 +585,34 @@ export default function SchoolsPage() {
                           {s.updated_at ? new Date(s.updated_at).toLocaleString() : 'Recently'}
                         </td>
                         <td className="text-center">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleEdit(s)}>
-                                <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => setDeleteTarget(s)}
-                                className="text-destructive focus:text-destructive"
-                              >
-                                <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          {canManageSchools || canDeleteSchools ? (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                {canManageSchools && (
+                                  <DropdownMenuItem onClick={() => handleEdit(s)}>
+                                    <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
+                                  </DropdownMenuItem>
+                                )}
+                                {canDeleteSchools && (
+                                  <DropdownMenuItem
+                                    onClick={() => setDeleteTarget(s)}
+                                    className="text-destructive focus:text-destructive"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          ) : (
+                            <Link href={`/school/${s.id}/reports`} className="text-xs text-primary hover:underline">
+                              Reports
+                            </Link>
+                          )}
                         </td>
                       </tr>
                     ))}

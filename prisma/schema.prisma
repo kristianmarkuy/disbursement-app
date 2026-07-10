@@ -1,0 +1,75 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model UacsCode {
+  id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code         String        @unique
+  title        String
+  description  String?
+  status       String        @default("active")
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime      @default(now()) @map("updated_at") @db.Timestamptz(6)
+  transactions Transaction[]
+
+  @@map("uacs_codes")
+}
+
+model School {
+  id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name         String
+  code         String        @unique
+  address      String?
+  division     String?
+  region       String?
+  userId       String?       @map("user_id") @db.Uuid
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime      @default(now()) @map("updated_at") @db.Timestamptz(6)
+  transactions Transaction[]
+
+  @@map("schools")
+}
+
+model Transaction {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schoolId    String    @map("school_id") @db.Uuid
+  date        DateTime  @default(dbgenerated("CURRENT_DATE")) @db.Date
+  dvNumber    String    @map("dv_number")
+  checkNumber String?   @map("check_number")
+  payee       String
+  particulars String?
+  amount      Decimal   @default(0) @db.Decimal(15, 2)
+  fundSource  String    @default("General Fund") @map("fund_source")
+  uacsCode    String?   @map("uacs_code")
+  category    String    @default("Others")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+  school      School    @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  uacs        UacsCode? @relation(fields: [uacsCode], references: [code])
+
+  @@index([schoolId], map: "idx_transactions_school_id")
+  @@index([date], map: "idx_transactions_date")
+  @@map("transactions")
+}
+
+model UserProfile {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clerkUserId    String?   @unique @map("clerk_user_id")
+  email          String
+  fullName       String?   @map("full_name")
+  role           String    @default("viewer")
+  approvalStatus String    @default("pending") @map("approval_status")
+  approvedBy     String?   @map("approved_by") @db.Uuid
+  approvedAt     DateTime? @map("approved_at") @db.Timestamptz(6)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([role], map: "idx_user_profiles_role")
+  @@index([approvalStatus], map: "idx_user_profiles_approval_status")
+  @@map("user_profiles")
+}

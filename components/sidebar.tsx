@@ -12,15 +12,16 @@ import {
   Building2,
   LogOut,
   HelpCircle,
+  Users,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { School } from '@/lib/supabase';
+import { School, UserRole } from '@/lib/supabase';
 
 const schoolNavItems = [
-  { href: '', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { href: '/transactions', label: 'Transactions', icon: Receipt },
-  { href: '/uacs', label: 'UACS Codes', icon: BookOpen },
-  { href: '/reports', label: 'Reports', icon: FileText },
+  { href: '', label: 'Dashboard', icon: LayoutDashboard, end: true, roles: ['admin', 'officer'] },
+  { href: '/transactions', label: 'Transactions', icon: Receipt, roles: ['admin', 'officer'] },
+  { href: '/uacs', label: 'UACS Codes', icon: BookOpen, roles: ['admin'] },
+  { href: '/reports', label: 'Reports', icon: FileText, roles: ['admin', 'officer', 'viewer'] },
 ];
 
 interface SidebarProps {
@@ -31,7 +32,10 @@ interface SidebarProps {
 export function Sidebar({ school, schoolId }: SidebarProps) {
   const pathname = usePathname();
   const basePath = `/school/${schoolId}`;
-  const { signOut } = useAuth();
+  const { signOut, role, canManageUsers } = useAuth();
+  const visibleNavItems = schoolNavItems.filter(
+    (item) => role && item.roles.includes(role as UserRole)
+  );
 
   return (
     <aside className="fixed left-0 top-0 z-40 flex h-screen w-[260px] flex-col border-r border-border bg-[hsl(var(--sidebar))] text-[hsl(var(--sidebar-foreground))]">
@@ -50,18 +54,8 @@ export function Sidebar({ school, schoolId }: SidebarProps) {
         </div>
       </div>
 
-      <div className="px-4 py-5">
-        <Link
-          href={`/school/${schoolId}/transactions`}
-          className="flex h-10 items-center justify-center gap-2 rounded bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90"
-        >
-          <Receipt className="h-4 w-4" />
-          New Transaction
-        </Link>
-      </div>
-
       <nav className="flex-1 px-3 space-y-1">
-        {schoolNavItems.map((item) => {
+        {visibleNavItems.map((item) => {
           const itemHref = `${basePath}${item.href}`;
           const isActive = item.end
             ? pathname === itemHref
@@ -92,6 +86,15 @@ export function Sidebar({ school, schoolId }: SidebarProps) {
           <Building2 className="h-4 w-4" />
           All Schools
         </Link>
+        {canManageUsers && (
+          <Link
+            href="/admin/users"
+            className="flex h-9 items-center gap-3 rounded px-3 text-sm text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors"
+          >
+            <Users className="h-4 w-4" />
+            User Approvals
+          </Link>
+        )}
         <Link
           href="#"
           className="flex h-9 items-center gap-3 rounded px-3 text-sm text-slate-700 hover:bg-slate-50 hover:text-primary transition-colors"
