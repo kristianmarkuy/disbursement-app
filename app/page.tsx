@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
+import type { ReactNode } from 'react';
 import { useAuth } from '@/lib/auth-provider';
 import { RequireAuth } from '@/components/auth-guard';
 import { SchoolModal } from '@/components/school-modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,11 +36,12 @@ import {
   Landmark,
   HelpCircle,
   Bell,
-  Download,
-  Printer,
   Users,
-  Database,
+  ArrowRight,
+  BarChart3,
+  WalletCards,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { supabase, School, SchoolTransactionStats, formatCurrency } from '@/lib/supabase';
 import { toast } from 'sonner';
 import Link from 'next/link';
@@ -95,16 +98,6 @@ export default function SchoolsPage() {
     }
 
     const enriched: SchoolWithStats[] = schoolData
-      .filter((s) => {
-        if (!search) return true;
-        const q = search.toLowerCase();
-        return (
-          s.name.toLowerCase().includes(q) ||
-          s.code.toLowerCase().includes(q) ||
-          (s.division || '').toLowerCase().includes(q) ||
-          (s.region || '').toLowerCase().includes(q)
-        );
-      })
       .map((s) => ({
         ...s,
         txn_count: statsMap[s.id]?.count || 0,
@@ -113,7 +106,34 @@ export default function SchoolsPage() {
 
     setSchools(enriched);
     setLoading(false);
-  }, [search]);
+  }, []);
+
+  const filteredSchools = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    if (!query) return schools;
+
+    return schools.filter((school) =>
+      [
+        school.name,
+        school.code,
+        school.division,
+        school.region,
+        school.address,
+      ]
+        .filter(Boolean)
+        .some((value) => value!.toLowerCase().includes(query))
+    );
+  }, [schools, search]);
+
+  const directoryStats = useMemo(
+    () => ({
+      schools: schools.length,
+      transactions: schools.reduce((total, school) => total + school.txn_count, 0),
+      disbursed: schools.reduce((total, school) => total + school.total_amount, 0),
+    }),
+    [schools]
+  );
 
   useEffect(() => {
     fetchSchools();
@@ -477,7 +497,7 @@ export default function SchoolsPage() {
             <div className="relative w-full max-w-[520px]">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search across portal..."
+                placeholder="Search schools..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-10"
@@ -495,33 +515,20 @@ export default function SchoolsPage() {
             </div>
           </header>
 
-          <div className="app-container">
-            <div className="mb-6 flex items-start justify-between">
-              <div>
-                <h1 className="text-3xl font-semibold tracking-tight">Schools Directory</h1>
-                <p className="mt-1 text-sm text-muted-foreground">
+          <div className="app-container space-y-5">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div className="max-w-3xl">
+                <Badge variant="secondary" className="mb-3 rounded-full bg-accent px-3 py-1 text-primary">
+                  Schools Directory
+                </Badge>
+                <h1 className="text-3xl font-semibold tracking-tight">Select a school workspace</h1>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
                   {canManageSchools
-                    ? 'Manage institutional profiles, view transaction history, and update contact information.'
-                    : 'Select a school to view available financial reports.'}
+                    ? 'Manage school profiles, open transaction workspaces, and review disbursement activity from one place.'
+                    : 'Choose a school to view the reports available to your account.'}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Download className="h-4 w-4" />
-                  Export
-                </Button>
-                {canManageSchools && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleLoadSampleData}
-                    disabled={loadingSampleData}
-                    className="gap-2"
-                  >
-                    <Database className="h-4 w-4" />
-                    {loadingSampleData ? 'Loading...' : 'Load Sample Data'}
-                  </Button>
-                )}
+              <div className="flex flex-wrap items-center gap-2">
                 {canManageSchools && (
                   <Button onClick={handleAdd} size="sm" className="gap-2">
                     <Plus className="h-4 w-4" />
@@ -531,20 +538,45 @@ export default function SchoolsPage() {
               </div>
             </div>
 
-            <Card className="overflow-hidden">
-              <div className="flex items-center justify-between border-b p-4">
-                <div className="relative w-full max-w-[280px]">
+            <div className="grid gap-3 md:grid-cols-3">
+              <DirectoryMetric
+                label="Schools"
+                value={directoryStats.schools.toLocaleString()}
+                description="Active records in your directory"
+                icon={Building2}
+              />
+              <DirectoryMetric
+                label="Transactions"
+                value={directoryStats.transactions.toLocaleString()}
+                description="Linked disbursement entries"
+                icon={BarChart3}
+              />
+              <DirectoryMetric
+                label="Total Disbursed"
+                value={formatCurrency(directoryStats.disbursed)}
+                description="Across all listed schools"
+                icon={WalletCards}
+              />
+            </div>
+
+            <Card className="overflow-hidden border-primary/10">
+              <div className="flex flex-col gap-3 border-b bg-white p-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <h2 className="text-sm font-semibold">School Workspaces</h2>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {loading
+                      ? 'Loading directory records...'
+                      : `Showing ${filteredSchools.length} of ${schools.length} schools`}
+                  </p>
+                </div>
+                <div className="relative w-full lg:max-w-sm">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    placeholder="Filter by name or ID..."
+                    placeholder="Search school, ID, division, or region..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    className="pl-10"
+                    className="h-10 bg-muted pl-10 focus:bg-white"
                   />
-                </div>
-                <div className="flex items-center gap-3 text-foreground">
-                  <Download className="h-4 w-4" />
-                  <Printer className="h-4 w-4" />
                 </div>
               </div>
 
@@ -552,88 +584,153 @@ export default function SchoolsPage() {
                 <table className="data-table">
                   <thead>
                     <tr>
-                      <th className="w-10"><span className="block h-4 w-4 rounded-sm border bg-white" /></th>
-                      <th>School Name</th>
+                      <th>School</th>
                       <th>School ID</th>
                       <th>Division / Region</th>
-                      <th className="text-right">Txns</th>
-                      <th className="text-right">Total Disbursed</th>
+                      <th>Txns</th>
+                      <th>Total Disbursed</th>
                       <th>Last Updated</th>
-                      <th className="text-center">Action</th>
+                      <th className="text-right">Action</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {loading && (
-                      <tr>
-                        <td colSpan={8} className="h-24 text-center text-muted-foreground">Loading schools...</td>
-                      </tr>
-                    )}
+                    {loading &&
+                      Array.from({ length: 5 }).map((_, index) => (
+                        <tr key={index}>
+                          <td colSpan={7} className="h-14">
+                            <div className="h-4 w-full animate-pulse rounded bg-muted" />
+                          </td>
+                        </tr>
+                      ))}
                     {!loading && schools.length === 0 && (
-                      <tr>
-                        <td colSpan={8} className="h-24 text-center text-muted-foreground">
-                          No schools yet. Click &quot;Add School&quot; to get started.
-                        </td>
-                      </tr>
+                      <DirectoryEmptyState
+                        title="No schools have been added yet"
+                        description={
+                          canManageSchools
+                            ? 'Create the first school workspace to start tracking disbursement records.'
+                            : 'There are no school records available for your account yet.'
+                        }
+                        action={
+                          canManageSchools ? (
+                            <Button onClick={handleAdd} size="sm" className="mt-4 gap-2">
+                              <Plus className="h-4 w-4" />
+                              Add School
+                            </Button>
+                          ) : null
+                        }
+                      />
                     )}
-                    {schools.map((s) => (
-                      <tr key={s.id}>
-                        <td><span className="block h-4 w-4 rounded-sm border bg-white" /></td>
-                        <td>
-                          <Link href={canManageSchools ? `/school/${s.id}` : `/school/${s.id}/reports`} className="font-medium text-primary hover:underline">
-                            {s.name}
-                          </Link>
-                        </td>
-                        <td className="font-mono">{s.code}</td>
-                        <td className="max-w-[320px] truncate text-muted-foreground">
-                          {[s.division, s.region].filter(Boolean).join(', ') || 'Not specified'}
-                        </td>
-                        <td className="number-cell font-medium">{s.txn_count.toLocaleString()}</td>
-                        <td className="number-cell font-medium">{formatCurrency(s.total_amount)}</td>
-                        <td className="text-muted-foreground">
-                          {s.updated_at ? new Date(s.updated_at).toLocaleString() : 'Recently'}
-                        </td>
-                        <td className="text-center">
-                          {canManageSchools || canDeleteSchools ? (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                {canManageSchools && (
-                                  <DropdownMenuItem onClick={() => handleEdit(s)}>
-                                    <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
-                                  </DropdownMenuItem>
-                                )}
-                                {canDeleteSchools && (
-                                  <DropdownMenuItem
-                                    onClick={() => setDeleteTarget(s)}
-                                    className="text-destructive focus:text-destructive"
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
-                                  </DropdownMenuItem>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          ) : (
-                            <Link href={`/school/${s.id}/reports`} className="text-xs text-primary hover:underline">
-                              Reports
+                    {!loading && schools.length > 0 && filteredSchools.length === 0 && (
+                      <DirectoryEmptyState
+                        title="No schools match your search"
+                        description="Try searching by school name, school ID, division, region, or address."
+                        action={
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSearch('')}
+                            className="mt-4"
+                          >
+                            Clear Search
+                          </Button>
+                        }
+                      />
+                    )}
+                    {filteredSchools.map((school) => {
+                      const schoolHref = canManageSchools
+                        ? `/school/${school.id}`
+                        : `/school/${school.id}/reports`;
+                      const location = [school.division, school.region].filter(Boolean).join(', ');
+
+                      return (
+                        <tr key={school.id} className="group">
+                          <td>
+                            <Link href={schoolHref} className="flex items-center gap-3">
+                              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                                <Building2 className="h-4 w-4" aria-hidden="true" />
+                              </span>
+                              <span className="min-w-0">
+                                <span className="block truncate font-medium text-primary group-hover:underline">
+                                  {school.name}
+                                </span>
+                                <span className="block truncate text-[11px] text-muted-foreground">
+                                  {school.address || 'No address provided'}
+                                </span>
+                              </span>
                             </Link>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td>
+                            <Badge variant="outline" className="rounded-full font-mono">
+                              {school.code}
+                            </Badge>
+                          </td>
+                          <td className="max-w-[320px] truncate text-muted-foreground">
+                            {location || 'Not specified'}
+                          </td>
+                          <td className="font-medium tabular-nums">
+                            {school.txn_count.toLocaleString()}
+                          </td>
+                          <td className="font-medium tabular-nums">
+                            {formatCurrency(school.total_amount)}
+                          </td>
+                          <td className="text-muted-foreground">
+                            {school.updated_at
+                              ? new Date(school.updated_at).toLocaleDateString(undefined, {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric',
+                                })
+                              : 'Recently'}
+                          </td>
+                          <td>
+                            <div className="flex items-center gap-1">
+                              <Button asChild variant="ghost" size="sm" className="gap-1.5">
+                                <Link href={schoolHref}>
+                                  Open
+                                  <ArrowRight className="h-3.5 w-3.5" />
+                                </Link>
+                              </Button>
+                              {(canManageSchools || canDeleteSchools) && (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    {canManageSchools && (
+                                      <DropdownMenuItem onClick={() => handleEdit(school)}>
+                                        <Pencil className="mr-2 h-3.5 w-3.5" /> Edit
+                                      </DropdownMenuItem>
+                                    )}
+                                    {canDeleteSchools && (
+                                      <DropdownMenuItem
+                                        onClick={() => setDeleteTarget(school)}
+                                        className="text-destructive focus:text-destructive"
+                                      >
+                                        <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
+                                      </DropdownMenuItem>
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
-              <div className="flex h-12 items-center justify-between border-t px-4 text-xs text-muted-foreground">
-                <span>Showing 1 to {schools.length} of {schools.length} entries</span>
-                <div className="flex items-center gap-1">
-                  <Button variant="outline" size="sm" disabled>Previous</Button>
-                  <Button size="sm" className="h-8 w-8 p-0">1</Button>
-                  <Button variant="outline" size="sm" disabled>Next</Button>
-                </div>
+              <div className="flex flex-col gap-2 border-t bg-muted/50 px-4 py-3 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+                <span>
+                  {loading
+                    ? 'Loading schools...'
+                    : `Showing ${filteredSchools.length} of ${schools.length} schools`}
+                </span>
+                <span>
+                  {search.trim() ? `Filtered by "${search.trim()}"` : 'Search filters apply instantly'}
+                </span>
               </div>
             </Card>
           </div>
@@ -667,5 +764,59 @@ export default function SchoolsPage() {
       </AlertDialog>
     </div>
     </RequireAuth>
+  );
+}
+
+function DirectoryMetric({
+  label,
+  value,
+  description,
+  icon: Icon,
+}: {
+  label: string;
+  value: string;
+  description: string;
+  icon: LucideIcon;
+}) {
+  return (
+    <Card className="p-4">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">
+            {label}
+          </p>
+          <p className="mt-2 text-2xl font-semibold tabular-nums">{value}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+        </div>
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-accent text-primary">
+          <Icon className="h-4 w-4" aria-hidden="true" />
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function DirectoryEmptyState({
+  title,
+  description,
+  action,
+}: {
+  title: string;
+  description: string;
+  action?: ReactNode;
+}) {
+  return (
+    <tr>
+      <td colSpan={7} className="h-56 text-center">
+        <div className="mx-auto flex max-w-sm flex-col items-center px-6 py-8">
+          <div className="flex h-12 w-12 items-center justify-center rounded bg-accent text-primary">
+            <Building2 className="h-5 w-5" aria-hidden="true" />
+          </div>
+          <p className="mt-4 text-sm font-semibold text-foreground">{title}</p>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>
+          {action}
+        </div>
+      </td>
+    </tr>
   );
 }
